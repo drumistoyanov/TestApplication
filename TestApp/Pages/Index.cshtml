@@ -1,0 +1,160 @@
+﻿@page
+@addTagHelper *, LazZiya.TagHelpers
+@model IndexModel
+<br />
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <table class="table">
+                <colgroup>
+                    <col style="width: 2%;">
+                    <col style="width: 10%;">
+                    <col style="width: 5%;">
+                    <col style="width: 20%;">
+                </colgroup>
+
+                <tr>
+                    <th>Id</th>
+                    <th>Name</th>
+                    <th></th>
+                    <th>Projects</th>
+                </tr>
+                @foreach (var user in Model.Users.Results)
+                {
+                    <tr>
+                        <td>@user.Id</td>
+                        <td>@user.Name</td>
+                        <td><button type="button" class="Info">Info</button><button type="button" hidden="hidden" class="Clear">Clear</button></td>
+                        <td></td>
+                    </tr>
+                }
+            </table>
+            <form method="post"><button type="submit" >Click to Reload new users</button></form>
+            <br />
+        </div>
+        <div class="col">
+            <div id="barchart_values"></div>
+            <div class="form-group row">
+                <div class="col-xs-2">
+                    <input class="form-control" width="200" asp-for="StartDate.Date" />
+                </div>
+                <div class="col-xs-3">
+                    <input class="form-control" asp-for="EndDate.Date" />
+                </div>
+                <div class="col-xs-4">
+                    <input type="button" value="Submit" id="chartReload" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<paging page-no="@Model.Users.CurrentPage"
+        page-size="@Model.Users.PageSize"
+        total-records="@(Model.Users.RowCount)">
+</paging>
+
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript">
+    google.charts.load("current", { packages: ["corechart"] });
+    google.charts.setOnLoadCallback(drawChart);
+    function drawChart() {
+        $('#chartReload').on('click', function () {
+            var startDate = $('#StartDate_Date').val();
+            var endDate = $('#EndDate_Date').val();
+            $.ajax({
+                type: "GET",
+                url: "Chart/GetChartData",
+                data: { startDate: startDate, endDate: endDate },
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (r) {
+                    var obj = JSON.parse(r);
+                    var data = new google.visualization.DataTable();
+                    data.addColumn({ type: 'string', label: 'Name' });
+                    data.addColumn({ type: 'number', label: 'Hours' });
+                    data.addRows(obj);
+
+                    var chart = new google.visualization.BarChart(document.getElementById("barchart_values"));
+                    chart.draw(data, options);
+                },
+                failure: function (r) {
+                    alert(r.d);
+                },
+                error: function (r) {
+                    alert(r.d);
+                }
+            });
+        });
+        $.ajax({
+            type: "GET",
+            url: "Chart/GetChartData",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (r) {
+                var obj = JSON.parse(r);
+                var data = new google.visualization.DataTable();
+                data.addColumn({ type: 'string', label: 'Name' });
+                data.addColumn({ type: 'number', label: 'Hours' });
+                data.addRows(obj);
+
+                var chart = new google.visualization.BarChart(document.getElementById("barchart_values"));
+                chart.draw(data, options);
+            },
+            failure: function (r) {
+                alert(r.d);
+            },
+            error: function (r) {
+                alert(r.d);
+            }
+        });
+
+        var options = {
+            title: "Users with most hours",
+            width: 600,
+            height: 400,
+            bar: { groupWidth: "95%" },
+            legend: { position: "none" },
+        };
+
+        $('.Info').on('click', function () {
+            var id = $(this).parent().siblings()[0].innerHTML;
+            var divv = $(this).parent().siblings()[2];
+            $(this).prop('hidden', true);
+            $(this).siblings()[0].hidden = false;
+           //[3];
+            $.ajax({
+                type: "GET",
+                url: "Chart/GetInfoForUser",
+                data: { id: id },
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (r) {
+                    var obj = JSON.parse(r);
+
+                    for (var i in obj) {
+
+                        var para = document.createElement("p");
+                        var node = document.createTextNode([obj[i].Name + ' : ' + obj[i].Hours + 'h']);
+                        para.appendChild(node);
+                        divv.appendChild(para);
+                    }
+
+                },
+                failure: function (r) {
+                    alert(r.d);
+                },
+                error: function (r) {
+                    alert(r.d);
+                }
+            });
+        });
+        $('.Clear').on('click', function () {
+            var divv = $(this).parent().siblings()[2];
+            divv.innerHTML = null;
+            $(this).prop('hidden', true);
+            $(this).siblings()[0].hidden = false;
+        });
+    }
+
+</script>
